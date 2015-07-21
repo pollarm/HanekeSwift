@@ -146,7 +146,7 @@ public class Cache<T : DataConvertible where T.Result == T, T : DataRepresentabl
     
     // MARK: Formats
 
-    var formats : [String : (Format<T>, NSCache, DiskCache)] = [:]
+    public private(set) var formats : [String : (Format<T>, NSCache, DiskCache)] = [:]
     
     public func addFormat(format : Format<T>) {
         let name = format.name
