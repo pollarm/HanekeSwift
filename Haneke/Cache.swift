@@ -159,13 +159,13 @@ public class Cache<T : DataConvertible where T.Result == T, T : DataRepresentabl
     // MARK: Internal
     
     lazy var cachePath : String = {
-        let basePath = DiskCache.basePath()
+        let basePath = DiskCache.basePath() as NSString
         let cachePath = basePath.stringByAppendingPathComponent(self.name)
         return cachePath
     }()
     
     func formatPath(formatName formatName : String) -> String {
-        let formatPath = self.cachePath.stringByAppendingPathComponent(formatName)
+        let formatPath = (self.cachePath as NSString).stringByAppendingPathComponent(formatName)
         var error : NSError? = nil
         let success: Bool
         do {

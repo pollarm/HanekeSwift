@@ -36,12 +36,12 @@ extension String {
     }
     
     func MD5Filename() -> String {
-        let MD5String = self.MD5String()
-        let pathExtension = self.pathExtension
+        let MD5String = self.MD5String() as NSString
+        let pathExtension = (self as NSString).pathExtension
         if pathExtension.characters.count > 0 {
-            return MD5String.stringByAppendingPathExtension(pathExtension) ?? MD5String
+            return MD5String.stringByAppendingPathExtension(pathExtension) ?? MD5String as String
         } else {
-            return MD5String
+            return MD5String as String
         }
     }
 
