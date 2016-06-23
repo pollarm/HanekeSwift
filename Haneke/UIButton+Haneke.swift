@@ -77,7 +77,7 @@ public extension UIButton {
     func hnk_fetchImageForFetcher(fetcher : Fetcher<UIImage>, state : UIControlState = .Normal, format : Format<UIImage>? = nil, failure fail : ((NSError?) -> ())?, success succeed : ((UIImage) -> ())?) -> Bool {
         let format = format ?? self.hnk_imageFormat
         let cache = Shared.imageCache
-        if cache.formats[format.name] == nil {
+        if cache.format(named: format.name) == nil {
             cache.addFormat(format)
         }
         var animated = false
@@ -188,7 +188,7 @@ public extension UIButton {
     func hnk_fetchBackgroundImageForFetcher(fetcher: Fetcher<UIImage>, state: UIControlState = .Normal, format: Format<UIImage>? = nil, failure fail: ((NSError?) -> ())?, success succeed : ((UIImage) -> ())?) -> Bool {
         let format = format ?? self.hnk_backgroundImageFormat
         let cache = Shared.imageCache
-        if cache.formats[format.name] == nil {
+        if cache.format(named: format.name) == nil {
             cache.addFormat(format)
         }
         var animated = false

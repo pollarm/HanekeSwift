@@ -92,7 +92,7 @@ public extension UIImageView {
     func hnk_fetchImageForFetcher(fetcher : Fetcher<UIImage>, format : Format<UIImage>? = nil, failure fail : ((NSError?) -> ())?, success succeed : ((UIImage) -> ())?) -> Bool {
         let cache = Shared.imageCache
         let format = format ?? self.hnk_format
-        if cache.formats[format.name] == nil {
+        if cache.format(named: format.name) == nil {
             cache.addFormat(format)
         }
         var animated = false

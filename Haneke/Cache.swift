@@ -62,7 +62,7 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
     }
     
     public func set(value value: T, key: String, formatName: String = HanekeGlobals.Cache.OriginalFormatName, success succeed: ((T) -> ())? = nil) {
-        if let (format, memoryCache, diskCache) = self.formats[formatName] {
+        if let format = self.formats[formatName], memoryCache = memCaches[formatName], diskCache = diskCaches[formatName] {
             self.format(value: value, format: format) { formattedValue in
                 let wrapper = ObjectWrapper(value: formattedValue)
                 memoryCache.setObject(wrapper, forKey: key)
@@ -77,7 +77,7 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
     
     public func fetch(key key: String, formatName: String = HanekeGlobals.Cache.OriginalFormatName, failure fail : Fetch<T>.Failer? = nil, success succeed : Fetch<T>.Succeeder? = nil) -> Fetch<T> {
         let fetch = Cache.buildFetch(failure: fail, success: succeed)
-        if let (format, memoryCache, diskCache) = self.formats[formatName] {
+        if let format = self.formats[formatName], memoryCache = memCaches[formatName], diskCache = diskCaches[formatName] {
             if let wrapper = memoryCache.objectForKey(key) as? ObjectWrapper, let result = wrapper.value as? T {
                 fetch.succeed(result)
                 diskCache.updateAccessDate(self.dataFromValue(result, format: format), key: key)
@@ -107,7 +107,7 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
                 fetch.fail(error)
             }
             
-            if let (format, _, _) = self.formats[formatName] {
+            if let format = self.formats[formatName] {
                 self.fetchAndSet(fetcher, format: format, failure: {error in
                     fetch.fail(error)
                 }) {value in
@@ -123,16 +123,20 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
     }
 
     public func remove(key key: String, formatName: String = HanekeGlobals.Cache.OriginalFormatName) {
-        if let (_, memoryCache, diskCache) = self.formats[formatName] {
+        if let memoryCache = self.memCaches[formatName] {
             memoryCache.removeObjectForKey(key)
+        }
+        if let diskCache = self.diskCaches[formatName] {
             diskCache.removeData(key)
         }
     }
     
     public func removeAll(completion: (() -> ())? = nil) {
         let group = dispatch_group_create();
-        for (_, (_, memoryCache, diskCache)) in self.formats {
+        for (_, memoryCache) in self.memCaches {
             memoryCache.removeAllObjects()
+        }
+        for (_, diskCache) in self.diskCaches {
             dispatch_group_enter(group)
             diskCache.removeAllData {
                 dispatch_group_leave(group)
@@ -161,7 +165,7 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
 
     public var size: UInt64 {
         var size: UInt64 = 0
-        for (_, (_, _, diskCache)) in self.formats {
+        for (_, diskCache) in self.diskCaches {
             dispatch_sync(diskCache.cacheQueue) { size += diskCache.size }
         }
         return size
@@ -170,21 +174,30 @@ public class Cache<T: DataConvertible where T.Result == T, T : DataRepresentable
     // MARK: Notifications
     
     func onMemoryWarning() {
-        for (_, (_, memoryCache, _)) in self.formats {
+        for (_, memoryCache) in self.memCaches {
             memoryCache.removeAllObjects()
         }
     }
     
     // MARK: Formats
 
-    var formats : [String : (Format<T>, NSCache, DiskCache)] = [:]
+    private var formats : [String : Format<T>] = [:]
+    private var memCaches : [String : NSCache] = [:]
+    private var diskCaches : [String : DiskCache] = [:]
     
     public func addFormat(format : Format<T>) {
         let name = format.name
         let formatPath = self.formatPath(formatName: name)
         let memoryCache = NSCache()
         let diskCache = DiskCache(path: formatPath, capacity : format.diskCapacity)
-        self.formats[name] = (format, memoryCache, diskCache)
+        self.formats[name] = format
+        self.memCaches[name] = memoryCache
+        self.diskCaches[name] = diskCache
+    }
+    
+    public func format(named name: String) -> Format<T>? {
+        guard let format = formats[name] else { return nil }
+        return format
     }
     
     // MARK: Internal
